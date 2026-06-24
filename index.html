@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ágora · Inteligencia financiera para consorcios</title>
+<style>
+  :root{
+    /* Brand — monochrome, sophisticated */
+    --ink:#1c1f24;
+    --ink-2:#3a3f47;
+    --slate:#6b7280;
+    --line:#e7e8ec;
+    --line-2:#eef0f3;
+    --bg:#f6f7f9;
+    --surface:#ffffff;
+    --surface-2:#fbfbfc;
+    --brand:#23262b;
+    --accent:#8a6d3b;        /* muted bronze/gold from the logo */
+    --accent-soft:#f3ede1;
+    /* Semantic */
+    --in:#1f7a55;            /* ingresos */
+    --in-soft:#e6f3ec;
+    --out:#b4453a;           /* egresos */
+    --out-soft:#fae9e7;
+    --warn:#9a6a12;
+    --warn-soft:#fbf1da;
+    --radius:14px;
+    --radius-sm:10px;
+    --shadow:0 1px 2px rgba(20,22,26,.04), 0 8px 24px rgba(20,22,26,.05);
+    --shadow-lg:0 24px 60px rgba(20,22,26,.18);
+    --font:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:var(--font);
+    color:var(--ink);
+    background:var(--bg);
+    -webkit-font-smoothing:antialiased;
+    font-size:14px;
+    line-height:1.45;
+  }
+  ::selection{background:var(--accent-soft)}
+  button{font-family:inherit;cursor:pointer}
+  h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.01em}
+
+  /* ---------- Layout ---------- */
+  .app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    background:var(--brand);
+    color:#c8cad0;
+    display:flex;flex-direction:column;
+    padding:22px 16px;
+    position:sticky;top:0;height:100vh;
+  }
+  .brand{display:flex;align-items:center;gap:11px;padding:4px 8px 22px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:16px}
+  .brand .mark{width:34px;height:34px;flex:none}
+  .brand .name{font-family:Georgia,"Times New Roman",serif;font-size:21px;letter-spacing:.04em;color:#fff;line-height:1}
+  .brand .sub{font-size:9px;letter-spacing:.34em;color:#8a8d95;text-transform:uppercase;margin-top:3px}
+  .nav{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+  .nav-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#71747c;padding:14px 10px 6px}
+  .nav a{
+    display:flex;align-items:center;gap:11px;
+    padding:9px 11px;border-radius:9px;color:#c8cad0;
+    text-decoration:none;font-size:13.5px;font-weight:500;
+    transition:background .15s,color .15s;
+  }
+  .nav a svg{width:17px;height:17px;flex:none;opacity:.8}
+  .nav a:hover{background:rgba(255,255,255,.06);color:#fff}
+  .nav a.active{background:#fff;color:var(--ink)}
+  .nav a.active svg{opacity:1}
+  .sidebar .foot{margin-top:auto;padding:14px 10px 2px;border-top:1px solid rgba(255,255,255,.08)}
+  .consorcio-pick{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#71747c;margin-bottom:7px}
+  .sidebar select{
+    width:100%;background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.12);
+    border-radius:9px;padding:9px 10px;font-family:inherit;font-size:13px;outline:none;cursor:pointer;
+  }
+  .sidebar select option{color:#1c1f24}
+
+  /* ---------- Main ---------- */
+  .main{display:flex;flex-direction:column;min-width:0}
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:18px 30px;background:var(--surface);border-bottom:1px solid var(--line);
+    position:sticky;top:0;z-index:20;
+  }
+  .topbar .title h1{font-size:19px}
+  .topbar .title p{margin:2px 0 0;color:var(--slate);font-size:12.5px}
+  .topbar-actions{display:flex;align-items:center;gap:10px}
+
+  /* date filter */
+  .daterange{display:flex;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:3px}
+  .daterange button{
+    border:0;background:transparent;color:var(--slate);font-size:12.5px;font-weight:500;
+    padding:7px 13px;border-radius:8px;transition:.15s;
+  }
+  .daterange button:hover{color:var(--ink)}
+  .daterange button.active{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .custom-dates{display:flex;align-items:center;gap:6px;color:var(--slate);font-size:12px}
+  .custom-dates input{
+    border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-family:inherit;font-size:12.5px;color:var(--ink);background:var(--surface);
+  }
+
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink);padding:9px 15px;border-radius:10px;
+    font-size:13px;font-weight:600;transition:.15s;white-space:nowrap;
+  }
+  .btn svg{width:16px;height:16px}
+  .btn:hover{border-color:#d7d9df;background:var(--surface-2)}
+  .btn-primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .btn-primary:hover{background:#000;border-color:#000}
+
+  .content{padding:26px 30px 60px;max-width:1320px;width:100%;margin:0 auto}
+  .view{display:none}
+  .view.active{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  /* ---------- Cards / KPIs ---------- */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 18px 16px;box-shadow:var(--shadow)}
+  .kpi .label{display:flex;align-items:center;gap:7px;color:var(--slate);font-size:12px;font-weight:500}
+  .kpi .label .dot{width:7px;height:7px;border-radius:50%}
+  .kpi .val{font-size:26px;font-weight:680;margin-top:10px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .kpi .delta{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;margin-top:7px}
+  .kpi .delta.up{color:var(--in)}
+  .kpi .delta.down{color:var(--out)}
+  .kpi .delta .muted{color:var(--slate);font-weight:500}
+
+  .grid{display:grid;gap:16px}
+  .grid-2{grid-template-columns:1.62fr 1fr}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;padding:17px 20px;border-bottom:1px solid var(--line-2)}
+  .panel-head h3{font-size:15px}
+  .panel-head .hint{color:var(--slate);font-size:12px}
+  .panel-body{padding:18px 20px 20px}
+  .legend{display:flex;gap:16px;align-items:center}
+  .legend span{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--slate);font-weight:500}
+  .legend i{width:11px;height:3px;border-radius:2px;display:inline-block}
+  .legend i.dash{background:repeating-linear-gradient(90deg,var(--slate) 0 4px,transparent 4px 7px);height:2px}
+
+  /* chart */
+  .chart-wrap{position:relative}
+  svg.chart{display:block;width:100%;height:auto;overflow:visible}
+  .chart .grid-line{stroke:var(--line-2);stroke-width:1}
+  .chart .axis-label{fill:var(--slate);font-size:10.5px;font-family:var(--font)}
+  .tooltip{
+    position:absolute;pointer-events:none;background:var(--ink);color:#fff;border-radius:9px;
+    padding:9px 11px;font-size:12px;box-shadow:var(--shadow-lg);opacity:0;transition:opacity .12s;
+    transform:translate(-50%,-118%);white-space:nowrap;z-index:5;
+  }
+  .tooltip b{display:block;font-size:11px;color:#aeb1b8;font-weight:600;margin-bottom:4px;letter-spacing:.02em}
+  .tooltip .row{display:flex;align-items:center;gap:7px;font-variant-numeric:tabular-nums}
+  .tooltip .row i{width:8px;height:8px;border-radius:50%}
+
+  /* ---------- Insights ---------- */
+  .insight{display:flex;gap:13px;padding:15px 16px;border:1px solid var(--line);border-radius:12px;margin-bottom:11px;background:var(--surface-2)}
+  .insight:last-child{margin-bottom:0}
+  .insight .ico{width:34px;height:34px;border-radius:9px;flex:none;display:grid;place-items:center}
+  .insight .ico svg{width:18px;height:18px}
+  .insight.alert .ico{background:var(--out-soft);color:var(--out)}
+  .insight.warn .ico{background:var(--warn-soft);color:var(--warn)}
+  .insight.good .ico{background:var(--in-soft);color:var(--in)}
+  .insight.tip .ico{background:var(--accent-soft);color:var(--accent)}
+  .insight .body{min-width:0}
+  .insight .body .t{font-weight:600;font-size:13.5px;margin-bottom:3px}
+  .insight .body .d{color:var(--slate);font-size:12.5px;line-height:1.5}
+  .insight .body .d b{color:var(--ink-2);font-weight:600}
+  .insight .tag{display:inline-block;margin-top:8px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:#fff;border:1px solid var(--line);color:var(--ink-2)}
+
+  /* recommendation banner */
+  .reco{
+    grid-column:1/-1;display:flex;align-items:center;gap:18px;
+    background:linear-gradient(180deg,#fff,var(--surface-2));
+    border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:var(--radius);padding:18px 22px;box-shadow:var(--shadow);margin-bottom:18px;
+  }
+  .reco .ico{width:42px;height:42px;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none}
+  .reco .ico svg{width:22px;height:22px}
+  .reco .txt{flex:1;min-width:0}
+  .reco .txt .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  .reco .txt .v{font-size:16px;font-weight:600;margin-top:3px}
+  .reco .txt .v b{font-variant-numeric:tabular-nums}
+  .reco .txt .s{color:var(--slate);font-size:12.5px;margin-top:3px}
+
+  /* ---------- Table ---------- */
+  .table-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .search{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:7px 11px;flex:1;min-width:180px}
+  .search svg{width:15px;height:15px;color:var(--slate);flex:none}
+  .search input{border:0;background:transparent;outline:none;font-family:inherit;font-size:13px;width:100%;color:var(--ink)}
+  .chips{display:flex;gap:6px}
+  .chip{border:1px solid var(--line);background:var(--surface);color:var(--slate);font-size:12.5px;font-weight:500;padding:7px 13px;border-radius:9px;transition:.15s}
+  .chip:hover{color:var(--ink)}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  table{width:100%;border-collapse:collapse}
+  thead th{
+    text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);
+    font-weight:600;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--surface-2);
+  }
+  thead th.num{text-align:right}
+  tbody td{padding:13px 20px;border-bottom:1px solid var(--line-2);font-size:13.5px;vertical-align:middle}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:var(--surface-2)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+  td.num.in{color:var(--in)}
+  td.num.out{color:var(--out)}
+  .cat{display:inline-flex;align-items:center;gap:8px}
+  .cat .sq{width:9px;height:9px;border-radius:3px;flex:none}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:20px}
+  .pill.in{background:var(--in-soft);color:var(--in)}
+  .pill.out{background:var(--out-soft);color:var(--out)}
+  .src{display:inline-flex;align-items:center;gap:5px;color:var(--slate);font-size:11.5px}
+  .src svg{width:13px;height:13px}
+  .empty{padding:46px;text-align:center;color:var(--slate)}
+  .table-foot{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-top:1px solid var(--line-2);color:var(--slate);font-size:12.5px}
+  .table-foot b{color:var(--ink);font-variant-numeric:tabular-nums}
+
+  /* breakdown bars */
+  .bd-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .bd-row:last-child{margin-bottom:0}
+  .bd-row .nm{width:150px;flex:none;font-size:12.5px;display:flex;align-items:center;gap:8px}
+  .bd-row .nm .sq{width:9px;height:9px;border-radius:3px;flex:none}
+  .bd-bar{flex:1;height:8px;background:var(--line-2);border-radius:6px;overflow:hidden}
+  .bd-bar i{display:block;height:100%;border-radius:6px}
+  .bd-row .amt{width:96px;text-align:right;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
+
+  /* ---------- Modal ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(20,22,26,.45);backdrop-filter:blur(2px);z-index:100;display:none;align-items:center;justify-content:center;padding:24px}
+  .overlay.open{display:flex;animation:fade .18s}
+  .modal{background:var(--surface);border-radius:18px;width:560px;max-width:100%;box-shadow:var(--shadow-lg);overflow:hidden;max-height:92vh;display:flex;flex-direction:column}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--line-2)}
+  .modal-head h3{font-size:16px}
+  .modal-head p{margin:3px 0 0;color:var(--slate);font-size:12.5px}
+  .x{border:0;background:var(--bg);width:32px;height:32px;border-radius:9px;color:var(--slate);display:grid;place-items:center;font-size:17px}
+  .x:hover{background:var(--line)}
+  .modal-body{padding:22px 24px;overflow:auto}
+  .drop{
+    border:1.5px dashed #cdd0d6;border-radius:14px;padding:34px 20px;text-align:center;
+    background:var(--surface-2);transition:.18s;cursor:pointer;
+  }
+  .drop:hover,.drop.drag{border-color:var(--accent);background:var(--accent-soft)}
+  .drop .ic{width:48px;height:48px;border-radius:12px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;margin:0 auto 13px;color:var(--accent)}
+  .drop .ic svg{width:24px;height:24px}
+  .drop .t{font-weight:600;font-size:14px}
+  .drop .s{color:var(--slate);font-size:12.5px;margin-top:4px}
+  .drop .formats{margin-top:11px;display:flex;gap:6px;justify-content:center}
+  .drop .formats span{font-size:10.5px;font-weight:600;color:var(--slate);background:#fff;border:1px solid var(--line);border-radius:6px;padding:3px 8px}
+
+  .scan{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--line);border-radius:12px;margin-top:16px;background:var(--surface-2)}
+  .scan .file-ic{width:40px;height:40px;border-radius:9px;background:var(--out-soft);color:var(--out);display:grid;place-items:center;flex:none}
+  .scan .file-ic svg{width:20px;height:20px}
+  .scan .meta{flex:1;min-width:0}
+  .scan .meta .fn{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .scan .meta .st{color:var(--slate);font-size:12px;margin-top:2px;display:flex;align-items:center;gap:6px}
+  .spinner{width:13px;height:13px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .ai-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:3px 8px;border-radius:20px}
+  .ai-badge svg{width:12px;height:12px}
+
+  .form{margin-top:18px;display:none}
+  .form.show{display:block;animation:fade .25s}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field.full{grid-column:1/-1}
+  .field label{font-size:12px;font-weight:600;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+  .field .extracted{font-size:10px;color:var(--accent);font-weight:600}
+  .field input,.field select{
+    border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:13.5px;color:var(--ink);background:var(--surface);outline:none;
+  }
+  .field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:18px 24px;border-top:1px solid var(--line-2)}
+
+  .toast{
+    position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:13px 20px;border-radius:12px;box-shadow:var(--shadow-lg);
+    font-size:13.5px;font-weight:500;display:flex;align-items:center;gap:10px;opacity:0;pointer-events:none;
+    transition:.3s;z-index:200;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast .ck{width:20px;height:20px;border-radius:50%;background:var(--in);display:grid;place-items:center;flex:none}
+  .toast .ck svg{width:13px;height:13px;color:#fff}
+
+  .muted-note{font-size:11.5px;color:var(--slate);margin-top:14px;display:flex;align-items:center;gap:6px}
+  .muted-note svg{width:13px;height:13px;flex:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M50 6 L66 26 L66 60 L34 60 L34 26 Z" stroke="#fff" stroke-width="3.4" stroke-linejoin="round"/>
+        <path d="M50 22 L50 60 M42 34 L50 26 L58 34" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M50 58 L74 72 L74 88 L50 94 L26 88 L26 72 Z" stroke="#fff" stroke-width="3.4" stroke-linejoin="round"/>
+        <path d="M50 58 L74 72 M50 58 L26 72 M50 58 L50 94 M26 80 L74 80" stroke="#fff" stroke-width="2" opacity=".75"/>
+      </svg>
+      <div>
+        <div class="name">ÁGORA</div>
+        <div class="sub">Consorcios</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-label">Gestión</div>
+      <a href="#" class="active" data-view="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h8V3H3zM13 21h8V8h-8zM3 21h8v-5H3zM13 5h8V3h-8z" stroke-linejoin="round"/></svg>
+        Panel general
+      </a>
+      <a href="#" data-view="movimientos">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10" stroke-linecap="round"/></svg>
+        Ingresos y egresos
+      </a>
+      <a href="#" data-view="proyeccion">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 18l5-6 4 3 7-9" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 6v5h-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Proyección de caja
+      </a>
+      <a href="#" data-view="insights">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 1 4 10.5c-.7.6-1 1-1 2V16H9v-.5c0-1-.3-1.4-1-2A6 6 0 0 1 12 3z" stroke-linejoin="round"/><path d="M9.5 20h5M10 22h4" stroke-linecap="round"/></svg>
+        Recomendaciones
+      </a>
+      <div class="nav-label">Acciones</div>
+      <a href="#" data-action="upload">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4m0 0L8 8m4-4l4 4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" stroke-linecap="round"/></svg>
+        Cargar gasto
+      </a>
+    </nav>
+
+    <div class="foot">
+      <div class="consorcio-pick">Consorcio</div>
+      <select id="consorcioSel">
+        <option>Av. Libertador 4250</option>
+        <option>Edificio Nogoyá 1180</option>
+        <option>Torre Belgrano · UF 1-86</option>
+        <option>Complejo Las Lomas</option>
+      </select>
+      <div id="dbStatus" style="display:flex;align-items:center;gap:7px;margin-top:11px;font-size:11px;color:#8a8d95"></div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <header class="topbar">
+      <div class="title">
+        <h1 id="viewTitle">Panel general</h1>
+        <p id="viewSub">Salud financiera y flujo de caja del consorcio</p>
+      </div>
+      <div class="topbar-actions">
+        <div class="daterange" id="dateRange">
+          <button data-range="month">Este mes</button>
+          <button data-range="quarter" class="active">Trimestre</button>
+          <button data-range="ytd">Año</button>
+          <button data-range="12m">12 meses</button>
+        </div>
+        <div class="custom-dates">
+          <input type="date" id="dFrom" />
+          <span>→</span>
+          <input type="date" id="dTo" />
+        </div>
+        <button class="btn btn-primary" id="openUpload">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4m0 0L8 8m4-4l4 4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" stroke-linecap="round"/></svg>
+          Cargar gasto
+        </button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ===== DASHBOARD ===== -->
+      <section class="view active" id="view-dashboard">
+        <div class="kpis" id="kpis"></div>
+
+        <div class="reco" id="recoBanner"></div>
+
+        <div class="grid grid-2">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Flujo de caja</h3>
+              <div class="legend">
+                <span><i style="background:var(--in)"></i>Ingresos</span>
+                <span><i style="background:var(--out)"></i>Egresos</span>
+                <span><i class="dash"></i>Proyectado</span>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="chart-wrap" id="cashChart"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Recomendaciones</h3><span class="hint">IA financiera</span></div>
+            <div class="panel-body" id="insightList"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-2" style="margin-top:16px">
+          <div class="panel">
+            <div class="panel-head"><h3>Composición de egresos</h3><span class="hint" id="bdPeriod"></span></div>
+            <div class="panel-body" id="breakdown"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Movimientos recientes</h3><a href="#" class="hint" id="goMov">Ver todos →</a></div>
+            <div class="panel-body" style="padding:0">
+              <table><tbody id="recentRows"></tbody></table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== MOVIMIENTOS ===== -->
+      <section class="view" id="view-movimientos">
+        <div class="kpis" id="movKpis" style="grid-template-columns:repeat(3,1fr)"></div>
+        <div class="panel">
+          <div class="panel-head" style="gap:14px">
+            <div class="table-tools" style="flex:1">
+              <div class="search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg>
+                <input type="text" id="movSearch" placeholder="Buscar concepto, proveedor, categoría…" />
+              </div>
+              <div class="chips" id="movChips">
+                <button class="chip active" data-type="all">Todos</button>
+                <button class="chip" data-type="in">Ingresos</button>
+                <button class="chip" data-type="out">Egresos</button>
+              </div>
+            </div>
+          </div>
+          <table>
+            <thead><tr>
+              <th>Fecha</th><th>Concepto</th><th>Categoría</th><th>Origen</th><th>Tipo</th><th class="num">Monto</th>
+            </tr></thead>
+            <tbody id="movRows"></tbody>
+          </table>
+          <div class="table-foot">
+            <span id="movCount"></span>
+            <span>Neto del período: <b id="movNet"></b></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PROYECCION ===== -->
+      <section class="view" id="view-proyeccion">
+        <div class="reco" id="projReco"></div>
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Proyección de caja · próximos 6 meses</h3>
+            <div class="legend">
+              <span><i style="background:var(--ink)"></i>Saldo proyectado</span>
+              <span><i style="background:var(--out)"></i>Umbral de liquidez</span>
+            </div>
+          </div>
+          <div class="panel-body"><div class="chart-wrap" id="projChart"></div></div>
+        </div>
+        <div class="grid grid-2" style="margin-top:16px">
+          <div class="panel">
+            <div class="panel-head"><h3>Supuestos del modelo</h3></div>
+            <div class="panel-body" id="assumptions"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Escenarios de morosidad</h3></div>
+            <div class="panel-body" id="scenarios"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== INSIGHTS ===== -->
+      <section class="view" id="view-insights">
+        <div class="panel">
+          <div class="panel-head"><h3>Recomendaciones de gestión</h3><span class="hint">Generadas a partir del flujo de caja del consorcio</span></div>
+          <div class="panel-body" id="allInsights"></div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============ UPLOAD MODAL ============ -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h3>Cargar gasto desde comprobante</h3>
+        <p>Subí una factura o recibo y Ágora extrae los datos automáticamente.</p>
+      </div>
+      <button class="x" id="closeModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="drop" id="drop">
+        <div class="ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3v4a1 1 0 0 0 1 1h4" stroke-linejoin="round"/><path d="M5 3h9l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke-linejoin="round"/><path d="M12 18v-5m0 0l-2 2m2-2l2 2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="t">Arrastrá el comprobante o hacé clic para elegir</div>
+        <div class="s">Factura, recibo o ticket de proveedor</div>
+        <div class="formats"><span>JPG</span><span>PNG</span><span>PDF</span><span>HEIC</span></div>
+      </div>
+      <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.pdf,.heic" hidden />
+
+      <div id="scanBox"></div>
+
+      <div class="form" id="expForm">
+        <div class="form-grid">
+          <div class="field">
+            <label>Fecha <span class="extracted">· extraído</span></label>
+            <input type="date" id="fDate" />
+          </div>
+          <div class="field">
+            <label>Monto <span class="extracted">· extraído</span></label>
+            <input type="text" id="fAmount" placeholder="$ 0,00" />
+          </div>
+          <div class="field full">
+            <label>Concepto <span class="extracted">· extraído</span></label>
+            <input type="text" id="fConcept" placeholder="Ej. Mantenimiento ascensores" />
+          </div>
+          <div class="field">
+            <label>Proveedor</label>
+            <input type="text" id="fProvider" placeholder="Razón social" />
+          </div>
+          <div class="field">
+            <label>Categoría</label>
+            <select id="fCategory"></select>
+          </div>
+        </div>
+        <div class="muted-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5m0 3h.01" stroke-linecap="round"/></svg>
+          Revisá los datos extraídos antes de confirmar. Se registrará como egreso del consorcio activo.
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="cancelExp">Cancelar</button>
+      <button class="btn btn-primary" id="saveExp" disabled>Registrar egreso</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span id="toastMsg"></span></div>
+
+<script src="firebase-config.js"></script>
+<script>
+/* ============================================================
+   ÁGORA — datos y lógica (prototipo front-end, sin backend)
+   ============================================================ */
+const NF = new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0});
+const NF2 = new Intl.NumberFormat('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt = n => NF.format(Math.round(n));
+const fmtK = n => { const a=Math.abs(n); if(a>=1e6) return (n<0?'-':'')+'$'+(a/1e6).toFixed(1)+'M'; if(a>=1e3) return (n<0?'-':'')+'$'+Math.round(a/1e3)+'k'; return fmt(n); };
+const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+/* Categorías típicas de un consorcio */
+const CATS = {
+  'Expensas ordinarias':{c:'#2f9e6e',t:'in'},
+  'Expensas extraordinarias':{c:'#7bbf9d',t:'in'},
+  'Intereses por mora':{c:'#b6d8c6',t:'in'},
+  'Sueldo encargado':{c:'#b4453a',t:'out'},
+  'Mantenimiento ascensores':{c:'#c2693f',t:'out'},
+  'Limpieza':{c:'#cf9b4a',t:'out'},
+  'Electricidad y servicios':{c:'#8a6d3b',t:'out'},
+  'Seguro del edificio':{c:'#6f7c8a',t:'out'},
+  'Reparaciones':{c:'#9a5e6e',t:'out'},
+  'Honorarios administración':{c:'#5a6470',t:'out'},
+  'Fondo de reserva':{c:'#7a8a9a',t:'out'}
+};
+const PROV = {
+  'Sueldo encargado':['Nómina · J. Pereyra'],
+  'Mantenimiento ascensores':['Ascensores Otis','Servas Elevadores'],
+  'Limpieza':['Limpio S.R.L.','Brillax'],
+  'Electricidad y servicios':['Edenor','Metrogas','AySA'],
+  'Seguro del edificio':['Sancor Seguros','La Caja'],
+  'Reparaciones':['Plomería del Centro','Pintureria Galo','Gremio Albañilería'],
+  'Honorarios administración':['Ágora Consorcios'],
+  'Fondo de reserva':['Transferencia a reserva']
+};
+
+/* ---- Generación de movimientos (12 meses hacia atrás) ---- */
+let SEED = 20260624;
+function rnd(){ SEED = (SEED*1103515245 + 12345) & 0x7fffffff; return SEED/0x7fffffff; }
+function pick(a){ return a[Math.floor(rnd()*a.length)]; }
+
+const TODAY = new Date(2026,5,24); // 24 jun 2026
+function buildData(){
+  SEED = 20260624;
+  const tx = [];
+  let id=0;
+  for(let m=11;m>=0;m--){
+    const d = new Date(TODAY.getFullYear(), TODAY.getMonth()-m, 1);
+    const infl = 1 + (11-m)*0.018; // costos crecientes (contexto inflacionario)
+    const monthLabel = d.getMonth();
+    // Ingresos: expensas ordinarias (cobranza ~ con morosidad)
+    const teorico = 7200000*infl;
+    const morosidad = 0.06 + rnd()*0.10; // 6%–16%
+    const cobrado = teorico*(1-morosidad);
+    tx.push(mk(++id, d, 5, 'Expensas ordinarias', 'Cobranza de expensas', cobrado, 'in', 'sistema'));
+    if(rnd()>0.62) tx.push(mk(++id, d, 8, 'Expensas extraordinarias', pick(['Cuota obra de fachada','Cuota impermeabilización','Aporte mejoras']), 900000*infl*(0.6+rnd()*0.6),'in','sistema'));
+    tx.push(mk(++id, d, 12, 'Intereses por mora', 'Recargo por pago fuera de término', teorico*morosidad*0.22,'in','sistema'));
+    // Egresos fijos
+    tx.push(mk(++id, d, 3, 'Sueldo encargado', 'Liquidación de haberes', 2150000*infl,'out','sistema'));
+    tx.push(mk(++id, d, 6, 'Limpieza', null, 540000*infl,'out',pick(['archivo','sistema'])));
+    tx.push(mk(++id, d, 10, 'Electricidad y servicios', null, 480000*infl*(0.8+rnd()*0.5),'out','archivo'));
+    tx.push(mk(++id, d, 9, 'Mantenimiento ascensores', null, 360000*infl,'out','archivo'));
+    tx.push(mk(++id, d, 14, 'Seguro del edificio', null, 295000*infl,'out',pick(['archivo','sistema'])));
+    tx.push(mk(++id, d, 20, 'Honorarios administración', null, 720000*infl,'out','sistema'));
+    // Egresos variables
+    if(rnd()>0.45) tx.push(mk(++id, d, 7+Math.floor(rnd()*16), 'Reparaciones', null, (180000+rnd()*900000)*infl,'out','archivo'));
+    if(rnd()>0.7) tx.push(mk(++id, d, 22, 'Fondo de reserva', null, 600000*infl,'out','sistema'));
+  }
+  return tx.sort((a,b)=>b.date-a.date);
+}
+function mk(id, base, day, cat, concept, amount, type, source){
+  const date = new Date(base.getFullYear(), base.getMonth(), day);
+  const prov = PROV[cat] ? pick(PROV[cat]) : null;
+  return { id, date, cat, concept: concept || cat, provider: prov, amount: Math.round(type==='out'?-amount:amount), type, source };
+}
+let DATA = [];
+
+/* ---------------- State ---------------- */
+let state = { range:'quarter', from:null, to:null, view:'dashboard', type:'all', q:'' };
+
+function rangeBounds(){
+  if(state.range==='custom' && state.from && state.to) return [state.from, state.to];
+  const to = new Date(TODAY); let from = new Date(TODAY);
+  if(state.range==='month') from = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+  else if(state.range==='quarter') from = new Date(TODAY.getFullYear(), TODAY.getMonth()-2, 1);
+  else if(state.range==='ytd') from = new Date(TODAY.getFullYear(), 0, 1);
+  else if(state.range==='12m') from = new Date(TODAY.getFullYear(), TODAY.getMonth()-11, 1);
+  return [from, to];
+}
+function inRange(t){ const [f,to]=rangeBounds(); return t.date>=f && t.date<=new Date(to.getFullYear(),to.getMonth(),to.getDate(),23,59); }
+function periodTx(){ return DATA.filter(inRange); }
+
+/* ---------------- Aggregations ---------------- */
+function totals(list){
+  let ingreso=0, egreso=0;
+  list.forEach(t=> t.type==='in' ? ingreso+=t.amount : egreso+=t.amount);
+  return { ingreso, egreso, neto: ingreso+egreso };
+}
+function byMonth(){
+  const map = {};
+  DATA.forEach(t=>{
+    const k = t.date.getFullYear()*12 + t.date.getMonth();
+    if(!map[k]) map[k]={ key:k, date:new Date(t.date.getFullYear(),t.date.getMonth(),1), in:0, out:0 };
+    if(t.type==='in') map[k].in+=t.amount; else map[k].out+=Math.abs(t.amount);
+  });
+  return Object.values(map).sort((a,b)=>a.key-b.key);
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function renderKPIs(){
+  const list = periodTx(); const t = totals(list);
+  // reserva acumulada (todo el histórico de fondo de reserva)
+  const reserva = DATA.filter(x=>x.cat==='Fondo de reserva').reduce((s,x)=>s+Math.abs(x.amount),0) + 4200000;
+  const saldo = totals(DATA.filter(x=>x.date<=TODAY)).neto + 3500000; // saldo inicial
+  // delta vs período previo (mismo largo)
+  const months = byMonth();
+  const lastM = months[months.length-1], prevM = months[months.length-2];
+  const dIn = prevM? (lastM.in-prevM.in)/prevM.in*100 : 0;
+  const dOut = prevM? (lastM.out-prevM.out)/prevM.out*100 : 0;
+
+  const kpis = [
+    {label:'Saldo disponible', dot:'var(--ink)', val:fmt(saldo), delta:null, sub:'Caja + bancos del consorcio'},
+    {label:'Ingresos', dot:'var(--in)', val:fmt(t.ingreso), delta:dIn, deltaTxt:'vs. mes previo'},
+    {label:'Egresos', dot:'var(--out)', val:fmt(Math.abs(t.egreso)), delta:dOut, invert:true, deltaTxt:'vs. mes previo'},
+    {label:'Resultado neto', dot:t.neto>=0?'var(--in)':'var(--out)', val:fmt(t.neto), delta:null, sub: t.neto>=0?'Superávit del período':'Déficit del período'},
+  ];
+  document.getElementById('kpis').innerHTML = kpis.map(k=>{
+    let d='';
+    if(k.delta!==null){
+      const up = k.delta>=0; const good = k.invert? !up : up;
+      d = `<div class="delta ${good?'up':'down'}">${up?'▲':'▼'} ${Math.abs(k.delta).toFixed(1)}% <span class="muted">${k.deltaTxt}</span></div>`;
+    } else if(k.sub){ d = `<div class="delta"><span class="muted">${k.sub}</span></div>`; }
+    return `<div class="kpi"><div class="label"><span class="dot" style="background:${k.dot}"></span>${k.label}</div><div class="val">${k.val}</div>${d}</div>`;
+  }).join('');
+
+  // mov view kpis
+  document.getElementById('movKpis').innerHTML = [
+    {l:'Ingresos del período',v:fmt(t.ingreso),c:'var(--in)'},
+    {l:'Egresos del período',v:fmt(Math.abs(t.egreso)),c:'var(--out)'},
+    {l:'Resultado neto',v:fmt(t.neto),c:t.neto>=0?'var(--in)':'var(--out)'}
+  ].map(k=>`<div class="kpi"><div class="label"><span class="dot" style="background:${k.c}"></span>${k.l}</div><div class="val">${k.v}</div></div>`).join('');
+}
+
+/* ---- Cash flow chart (SVG) ---- */
+function renderCashChart(){
+  const months = byMonth();
+  const [f] = rangeBounds();
+  let vis = months.filter(m=> m.date >= new Date(f.getFullYear(),f.getMonth(),1));
+  if(vis.length<2) vis = months.slice(-3);
+  // proyección: +2 meses
+  const proj = projectMonths(months, 2);
+  const all = [...vis.map(m=>({...m,proj:false})), ...proj.map(m=>({...m,proj:true}))];
+
+  const W=720,H=260, pL=8,pR=8,pT=14,pB=26;
+  const max = Math.max(...all.map(m=>Math.max(m.in,m.out)))*1.12;
+  const n=all.length, iw=W-pL-pR, ih=H-pT-pB;
+  const x = i => pL + (n===1?iw/2: i*(iw/(n-1)));
+  const y = v => pT + ih - (v/max)*ih;
+
+  const line = (key,proj) => all.map((m,i)=>`${i===0?'M':'L'}${x(i).toFixed(1)},${y(m[key]).toFixed(1)}`).join(' ');
+  const area = key => `M${x(0)},${y(all[0][key])} ` + all.map((m,i)=>`L${x(i)},${y(m[key])}`).join(' ') + ` L${x(n-1)},${y(0)} L${x(0)},${y(0)} Z`;
+
+  // split solid (real) / dashed (proj) by drawing two strokes
+  const splitIdx = vis.length-1;
+  const seg = (key, from, to, dash)=> {
+    let p=''; for(let i=from;i<=to;i++){ p+=`${i===from?'M':'L'}${x(i).toFixed(1)},${y(all[i][key]).toFixed(1)} `; }
+    const col = key==='in'?'var(--in)':'var(--out)';
+    return `<path d="${p}" fill="none" stroke="${col}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" ${dash?'stroke-dasharray="5 5" opacity=".6"':''}/>`;
+  };
+
+  const grid = [0,.25,.5,.75,1].map(p=>{
+    const yy=pT+ih-p*ih;
+    return `<line class="grid-line" x1="${pL}" y1="${yy}" x2="${W-pR}" y2="${yy}"/><text class="axis-label" x="${W-pR}" y="${yy-3}" text-anchor="end">${fmtK(p*max)}</text>`;
+  }).join('');
+  const labels = all.map((m,i)=>`<text class="axis-label" x="${x(i)}" y="${H-7}" text-anchor="middle">${MES[m.date.getMonth()]}${m.proj?'*':''}</text>`).join('');
+  const dots = all.map((m,i)=>`
+    <circle cx="${x(i)}" cy="${y(m.in)}" r="3" fill="#fff" stroke="var(--in)" stroke-width="2" ${m.proj?'opacity=".6"':''}/>
+    <circle cx="${x(i)}" cy="${y(m.out)}" r="3" fill="#fff" stroke="var(--out)" stroke-width="2" ${m.proj?'opacity=".6"':''}/>
+    <rect class="hot" data-i="${i}" x="${x(i)-iw/(n-1)/2}" y="${pT}" width="${iw/(n-1)}" height="${ih}" fill="transparent"/>`).join('');
+
+  document.getElementById('cashChart').innerHTML = `
+    <svg class="chart" viewBox="0 0 ${W} ${H}">
+      <defs><linearGradient id="gin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--in)" stop-opacity=".14"/><stop offset="1" stop-color="var(--in)" stop-opacity="0"/></linearGradient></defs>
+      ${grid}
+      <path d="${area('in')}" fill="url(#gin)"/>
+      ${seg('out',0,splitIdx,false)} ${seg('out',splitIdx,n-1,true)}
+      ${seg('in',0,splitIdx,false)} ${seg('in',splitIdx,n-1,true)}
+      ${dots}${labels}
+    </svg>
+    <div class="tooltip" id="ttCash"></div>`;
+
+  const tt=document.getElementById('ttCash');
+  document.querySelectorAll('#cashChart .hot').forEach(h=>{
+    h.addEventListener('mousemove',e=>{
+      const m=all[+h.dataset.i]; const wrap=document.getElementById('cashChart').getBoundingClientRect();
+      tt.style.opacity=1;
+      tt.style.left=(e.clientX-wrap.left)+'px'; tt.style.top=(e.clientY-wrap.top)+'px';
+      tt.innerHTML=`<b>${MES[m.date.getMonth()]} ${m.date.getFullYear()} ${m.proj?'· proyectado':''}</b>
+        <div class="row"><i style="background:var(--in)"></i>Ingresos ${fmt(m.in)}</div>
+        <div class="row"><i style="background:var(--out)"></i>Egresos ${fmt(m.out)}</div>
+        <div class="row" style="margin-top:3px;border-top:1px solid #3a3f47;padding-top:4px"><i style="background:#fff"></i>Neto ${fmt(m.in-m.out)}</div>`;
+    });
+    h.addEventListener('mouseleave',()=>tt.style.opacity=0);
+  });
+}
+
+/* simple linear-trend projection */
+function projectMonths(months, k){
+  const last = months.slice(-4);
+  const trend = key => { const a=last[0][key], b=last[last.length-1][key]; return (b-a)/(last.length-1); };
+  const tIn=trend('in'), tOut=trend('out');
+  const base=months[months.length-1];
+  const out=[];
+  for(let i=1;i<=k;i++){
+    const d=new Date(base.date.getFullYear(),base.date.getMonth()+i,1);
+    out.push({key:base.key+i,date:d,in:Math.max(0,base.in+tIn*i),out:Math.max(0,base.out+tOut*i)});
+  }
+  return out;
+}
+
+/* ---- Insights engine ---- */
+function computeInsights(){
+  const months = byMonth();
+  const last = months[months.length-1];
+  const proj = projectMonths(months,3);
+  const list=[];
+
+  // 1. liquidez / desfasaje
+  const negMonth = proj.find(m=>m.in-m.out<0);
+  if(negMonth){
+    list.push({type:'alert',icon:'alert',t:`Riesgo de desfasaje en ${MES[negMonth.date.getMonth()]}`,
+      d:`Se proyecta un resultado negativo de <b>${fmt(negMonth.in-negMonth.out)}</b>: los egresos superarían a la cobranza. Conviene anticipar parte del fondo o ajustar la expensa.`,tag:'Liquidez'});
+  } else {
+    list.push({type:'good',icon:'good',t:'Liquidez proyectada estable',
+      d:`Con la tendencia actual, el flujo se mantiene positivo los próximos 3 meses. Holgura promedio <b>${fmt(proj.reduce((s,m)=>s+(m.in-m.out),0)/proj.length)}</b>/mes.`,tag:'Liquidez'});
+  }
+
+  // 2. morosidad
+  const teorico = 7200000*(1+11*0.018);
+  const cobrado = last.in;
+  const mor = Math.max(0, 1 - cobrado/(teorico*1.05));
+  list.push({type:'warn',icon:'warn',t:`Morosidad estimada en ${(mor*100).toFixed(0)}%`,
+    d:`La cobranza del último mes quedó <b>${fmt(teorico-cobrado)}</b> por debajo de lo emitido. Cada punto de mora equivale a ~<b>${fmt(teorico*0.01)}</b>/mes de caja inmovilizada.`,tag:'Cobranza'});
+
+  // 3. recomendación de expensa
+  const reco = recomendarExpensa(months);
+  list.push({type:'tip',icon:'tip',t:'Recomendación de expensa',
+    d:`Para sostener cobertura de egresos y reservar capacidad, la expensa sugerida del próximo período es <b>${fmt(reco.target)}</b> (${reco.deltaPct>=0?'+':''}${reco.deltaPct.toFixed(1)}% vs. actual). Distribuir el ajuste evita el salto de fin de año.`,tag:'Optimización'});
+
+  // 4. fondo ocioso / gasto creciente
+  const elec = monthsCat('Electricidad y servicios');
+  if(elec.length>=4){
+    const growth = (elec[elec.length-1]-elec[elec.length-4])/elec[elec.length-4]*100;
+    if(growth>14) list.push({type:'warn',icon:'warn',t:'Electricidad y servicios en alza',
+      d:`Subió <b>${growth.toFixed(0)}%</b> en el trimestre. Revisar consumos de áreas comunes podría liberar caja recurrente.`,tag:'Egresos'});
+  }
+  return {list, reco, mor, proj};
+}
+function monthsCat(cat){
+  const map={};
+  DATA.filter(x=>x.cat===cat).forEach(t=>{const k=t.date.getFullYear()*12+t.date.getMonth(); map[k]=(map[k]||0)+Math.abs(t.amount);});
+  return Object.keys(map).sort().map(k=>map[k]);
+}
+function recomendarExpensa(months){
+  const recent = months.slice(-3);
+  const avgOut = recent.reduce((s,m)=>s+m.out,0)/recent.length;
+  const target = avgOut*1.08; // cubrir egresos + 8% reserva/colchón
+  const avgIn = recent.reduce((s,m)=>s+m.in,0)/recent.length;
+  const deltaPct = (target-avgIn)/avgIn*100;
+  return {target, deltaPct};
+}
+
+function renderInsights(){
+  const {list, reco, mor} = computeInsights();
+  const card = i=>`
+    <div class="insight ${i.type}">
+      <div class="ico">${ICON[i.icon]}</div>
+      <div class="body"><div class="t">${i.t}</div><div class="d">${i.d}</div><span class="tag">${i.tag}</span></div>
+    </div>`;
+  document.getElementById('insightList').innerHTML = list.slice(0,3).map(card).join('');
+  document.getElementById('allInsights').innerHTML = list.map(card).join('');
+
+  // reco banner
+  document.getElementById('recoBanner').innerHTML = `
+    <div class="ico">${ICON.tip}</div>
+    <div class="txt">
+      <div class="k">Recomendación de expensa · próximo período</div>
+      <div class="v">Emitir <b>${fmt(reco.target)}</b> &nbsp;·&nbsp; ${reco.deltaPct>=0?'+':''}${reco.deltaPct.toFixed(1)}% vs. cobranza actual</div>
+      <div class="s">Cubre egresos proyectados + colchón de reserva del 8%, distribuyendo el ajuste de forma gradual.</div>
+    </div>
+    <button class="btn btn-primary" onclick="toast('Recomendación aplicada al cálculo de expensas')">Aplicar al cálculo</button>`;
+}
+
+const ICON = {
+  alert:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01" stroke-linecap="round"/><path d="M10.3 3.8L2.3 18a2 2 0 0 0 1.7 3h16a2 2 0 0 0 1.7-3l-8-14.2a2 2 0 0 0-3.4 0z" stroke-linejoin="round"/></svg>',
+  warn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5m0 3h.01" stroke-linecap="round"/></svg>',
+  good:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  tip:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 1 4 10.5c-.7.6-1 1-1 2V16H9v-.5c0-1-.3-1.4-1-2A6 6 0 0 1 12 3z" stroke-linejoin="round"/><path d="M9.5 19h5" stroke-linecap="round"/></svg>'
+};
+
+/* ---- breakdown ---- */
+function renderBreakdown(){
+  const list = periodTx().filter(t=>t.type==='out');
+  const map={};
+  list.forEach(t=> map[t.cat]=(map[t.cat]||0)+Math.abs(t.amount));
+  const rows = Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  const max = rows.length?rows[0][1]:1;
+  const [f,to]=rangeBounds();
+  document.getElementById('bdPeriod').textContent = `${MES[f.getMonth()]} – ${MES[to.getMonth()]}`;
+  document.getElementById('breakdown').innerHTML = rows.map(([cat,v])=>`
+    <div class="bd-row">
+      <div class="nm"><span class="sq" style="background:${CATS[cat].c}"></span>${cat}</div>
+      <div class="bd-bar"><i style="width:${(v/max*100).toFixed(1)}%;background:${CATS[cat].c}"></i></div>
+      <div class="amt">${fmtK(v)}</div>
+    </div>`).join('') || '<div class="empty">Sin egresos en el período</div>';
+}
+
+/* ---- tables ---- */
+function rowHTML(t){
+  const cInfo = CATS[t.cat];
+  const src = t.source==='archivo'
+    ? '<span class="src"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4M5 3h9l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke-linejoin="round"/></svg>Comprobante</span>'
+    : '<span class="src"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>Sistema</span>';
+  return `<tr>
+    <td style="color:var(--slate);white-space:nowrap">${t.date.getDate()} ${MES[t.date.getMonth()]} ${String(t.date.getFullYear()).slice(2)}</td>
+    <td><div style="font-weight:600">${t.concept}</div>${t.provider?`<div style="color:var(--slate);font-size:11.5px">${t.provider}</div>`:''}</td>
+    <td><span class="cat"><span class="sq" style="background:${cInfo.c}"></span>${t.cat}</span></td>
+    <td>${src}</td>
+    <td><span class="pill ${t.type}">${t.type==='in'?'Ingreso':'Egreso'}</span></td>
+    <td class="num ${t.type}">${t.amount>0?'+':''}${fmt(t.amount)}</td>
+  </tr>`;
+}
+function renderRecent(){
+  document.getElementById('recentRows').innerHTML = periodTx().slice(0,6).map(rowHTML).join('') || '<tr><td class="empty" colspan="6">Sin movimientos</td></tr>';
+}
+function renderMovTable(){
+  let list = periodTx();
+  if(state.type!=='all') list=list.filter(t=>t.type===state.type);
+  if(state.q){ const q=state.q.toLowerCase(); list=list.filter(t=>(t.concept+t.cat+(t.provider||'')).toLowerCase().includes(q)); }
+  document.getElementById('movRows').innerHTML = list.map(rowHTML).join('') || '<tr><td class="empty" colspan="6">No hay movimientos que coincidan con el filtro</td></tr>';
+  const t=totals(list);
+  document.getElementById('movCount').textContent = `${list.length} movimiento${list.length!==1?'s':''}`;
+  document.getElementById('movNet').textContent = fmt(t.neto);
+}
+
+/* ---- proyeccion view ---- */
+function renderProyeccion(){
+  const months=byMonth();
+  const proj=projectMonths(months,6);
+  let saldo = totals(DATA.filter(x=>x.date<=TODAY)).neto + 3500000;
+  const pts=[{date:months[months.length-1].date,saldo}];
+  proj.forEach(m=>{ saldo+= (m.in-m.out); pts.push({date:m.date,saldo,proj:true}); });
+
+  const W=900,H=280,pL=8,pR=8,pT=16,pB=26;
+  const umbral=2000000;
+  const vals=pts.map(p=>p.saldo).concat([umbral,0]);
+  const max=Math.max(...vals)*1.1, min=Math.min(...vals,0);
+  const n=pts.length, iw=W-pL-pR, ih=H-pT-pB;
+  const x=i=>pL+i*(iw/(n-1));
+  const y=v=>pT+ih-((v-min)/(max-min))*ih;
+  const path=pts.map((p,i)=>`${i===0?'M':'L'}${x(i).toFixed(1)},${y(p.saldo).toFixed(1)}`).join(' ');
+  const grid=[0,.25,.5,.75,1].map(p=>{const yy=pT+p*ih;const v=max-(max-min)*p;return `<line class="grid-line" x1="${pL}" y1="${yy}" x2="${W-pR}" y2="${yy}"/><text class="axis-label" x="${W-pR}" y="${yy-3}" text-anchor="end">${fmtK(v)}</text>`;}).join('');
+  const labels=pts.map((p,i)=>`<text class="axis-label" x="${x(i)}" y="${H-7}" text-anchor="middle">${MES[p.date.getMonth()]}</text>`).join('');
+  const dots=pts.map((p,i)=>`<circle cx="${x(i)}" cy="${y(p.saldo)}" r="3.4" fill="#fff" stroke="var(--ink)" stroke-width="2" ${p.proj?'opacity=".6"':''}/>`).join('');
+  document.getElementById('projChart').innerHTML=`
+    <svg class="chart" viewBox="0 0 ${W} ${H}">
+      ${grid}
+      <line x1="${pL}" y1="${y(umbral)}" x2="${W-pR}" y2="${y(umbral)}" stroke="var(--out)" stroke-width="1.4" stroke-dasharray="6 5" opacity=".7"/>
+      <text class="axis-label" x="${pL+4}" y="${y(umbral)-5}" fill="var(--out)">Umbral mínimo ${fmtK(umbral)}</text>
+      <path d="${path}" fill="none" stroke="var(--ink)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      ${dots}${labels}
+    </svg>`;
+
+  const {reco}=computeInsights();
+  const dip=pts.find(p=>p.saldo<umbral);
+  document.getElementById('projReco').innerHTML=`
+    <div class="ico">${dip?ICON.alert:ICON.good}</div>
+    <div class="txt">
+      <div class="k">Proyección de caja</div>
+      <div class="v">${dip?`Atención: el saldo cruzaría el umbral mínimo en ${MES[dip.date.getMonth()]}`:'El saldo se mantiene sobre el umbral mínimo los próximos 6 meses'}</div>
+      <div class="s">Modelo de tendencia lineal sobre los últimos meses de cobranza y egresos del consorcio.</div>
+    </div>`;
+
+  document.getElementById('assumptions').innerHTML=[
+    ['Crecimiento de egresos','+1,8% mensual (tendencia)'],
+    ['Cobranza esperada','según morosidad histórica'],
+    ['Colchón de reserva','8% sobre egresos'],
+    ['Expensa sugerida',fmt(reco.target)],
+  ].map(([k,v])=>`<div class="bd-row"><div class="nm" style="width:auto;color:var(--slate)">${k}</div><div class="bd-bar" style="background:transparent"></div><div class="amt" style="width:auto;font-weight:600">${v}</div></div>`).join('');
+
+  const base=byMonth().slice(-3).reduce((s,m)=>s+m.in,0)/3;
+  document.getElementById('scenarios').innerHTML=[
+    ['Optimista','5% mora',base*1.06,'var(--in)'],
+    ['Base','11% mora',base,'var(--ink)'],
+    ['Pesimista','20% mora',base*0.90,'var(--out)'],
+  ].map(([k,v,amt,c])=>`<div class="bd-row"><div class="nm"><span class="sq" style="background:${c}"></span>${k} <span style="color:var(--slate)">· ${v}</span></div><div class="bd-bar"><i style="width:${(amt/(base*1.06)*100).toFixed(0)}%;background:${c}"></i></div><div class="amt">${fmtK(amt)}</div></div>`).join('');
+}
+
+/* ============================================================
+   RENDER ALL + navigation
+   ============================================================ */
+function renderAll(){
+  renderKPIs(); renderCashChart(); renderInsights(); renderBreakdown();
+  renderRecent(); renderMovTable(); renderProyeccion();
+}
+
+const TITLES={dashboard:['Panel general','Salud financiera y flujo de caja del consorcio'],
+  movimientos:['Ingresos y egresos','Detalle de movimientos con filtros por fecha, tipo y concepto'],
+  proyeccion:['Proyección de caja','Anticipá desfasajes de liquidez antes de que ocurran'],
+  insights:['Recomendaciones','Inteligencia financiera generada a partir de tu flujo de caja']};
+
+function setView(v){
+  state.view=v;
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id==='view-'+v));
+  document.querySelectorAll('.nav a[data-view]').forEach(a=>a.classList.toggle('active',a.dataset.view===v));
+  document.getElementById('viewTitle').textContent=TITLES[v][0];
+  document.getElementById('viewSub').textContent=TITLES[v][1];
+}
+
+document.querySelectorAll('.nav a[data-view]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();setView(a.dataset.view);}));
+document.getElementById('goMov').addEventListener('click',e=>{e.preventDefault();setView('movimientos');});
+document.querySelector('[data-action="upload"]').addEventListener('click',e=>{e.preventDefault();openModal();});
+
+/* date range */
+document.getElementById('dateRange').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  state.range=b.dataset.range; state.from=null; state.to=null;
+  document.querySelectorAll('#dateRange button').forEach(x=>x.classList.toggle('active',x===b));
+  document.getElementById('dFrom').value=''; document.getElementById('dTo').value='';
+  renderAll();
+});
+function customDate(){
+  const f=document.getElementById('dFrom').value, t=document.getElementById('dTo').value;
+  if(f&&t){ state.range='custom'; state.from=new Date(f); state.to=new Date(t);
+    document.querySelectorAll('#dateRange button').forEach(x=>x.classList.remove('active')); renderAll(); }
+}
+document.getElementById('dFrom').addEventListener('change',customDate);
+document.getElementById('dTo').addEventListener('change',customDate);
+
+/* mov filters */
+document.getElementById('movChips').addEventListener('click',e=>{
+  const c=e.target.closest('.chip'); if(!c) return;
+  state.type=c.dataset.type;
+  document.querySelectorAll('#movChips .chip').forEach(x=>x.classList.toggle('active',x===c));
+  renderMovTable();
+});
+document.getElementById('movSearch').addEventListener('input',e=>{state.q=e.target.value;renderMovTable();});
+document.getElementById('consorcioSel').addEventListener('change',async ()=>{ await loadConsorcio(document.getElementById('consorcioSel').value); renderAll(); toast('Consorcio cambiado'); });
+
+/* ============================================================
+   UPLOAD / OCR simulation
+   ============================================================ */
+const overlay=document.getElementById('overlay');
+function openModal(){ overlay.classList.add('open'); resetModal(); }
+function closeModal(){ overlay.classList.remove('open'); }
+document.getElementById('openUpload').addEventListener('click',openModal);
+document.getElementById('closeModal').addEventListener('click',closeModal);
+document.getElementById('cancelExp').addEventListener('click',closeModal);
+overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal();});
+
+function resetModal(){
+  document.getElementById('scanBox').innerHTML='';
+  document.getElementById('expForm').classList.remove('show');
+  document.getElementById('saveExp').disabled=true;
+  const sel=document.getElementById('fCategory');
+  sel.innerHTML=Object.keys(CATS).filter(c=>CATS[c].t==='out').map(c=>`<option>${c}</option>`).join('');
+}
+const drop=document.getElementById('drop'), fileInput=document.getElementById('fileInput');
+drop.addEventListener('click',()=>fileInput.click());
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
+drop.addEventListener('drop',e=>{ if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change',e=>{ if(e.target.files[0]) handleFile(e.target.files[0]); });
+
+function handleFile(file){
+  const isPdf=/pdf$/i.test(file.name);
+  document.getElementById('scanBox').innerHTML=`
+    <div class="scan">
+      <div class="file-ic">${isPdf?ICON_FILE:ICON_IMG}</div>
+      <div class="meta"><div class="fn">${file.name}</div>
+        <div class="st"><span class="spinner"></span> Analizando comprobante…</div></div>
+    </div>`;
+  // simulate OCR extraction
+  setTimeout(()=>{
+    const cats=Object.keys(CATS).filter(c=>CATS[c].t==='out');
+    const cat=pick(cats);
+    const amount=Math.round((150000+rnd()*900000));
+    const prov=PROV[cat]?pick(PROV[cat]):pick(['Proveedor S.A.','Servicios del Sur']);
+    const d=new Date(TODAY); d.setDate(d.getDate()-Math.floor(rnd()*20));
+    document.getElementById('scanBox').querySelector('.st').innerHTML=
+      `<span class="ai-badge">${ICON.tip}Datos extraídos</span> ${isPdf?'PDF':'Imagen'} · ${(file.size/1024).toFixed(0)} KB`;
+    // fill form
+    document.getElementById('fDate').value=d.toISOString().slice(0,10);
+    document.getElementById('fAmount').value='$ '+NF2.format(amount);
+    document.getElementById('fConcept').value=cat;
+    document.getElementById('fProvider').value=prov;
+    document.getElementById('fCategory').value=cat;
+    document.getElementById('expForm').classList.add('show');
+    document.getElementById('saveExp').disabled=false;
+    document.getElementById('saveExp')._pending={d,amount,cat,prov};
+  },1400);
+}
+const ICON_FILE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4M5 3h9l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke-linejoin="round"/></svg>';
+const ICON_IMG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5L4 21" stroke-linejoin="round"/></svg>';
+
+document.getElementById('saveExp').addEventListener('click',async ()=>{
+  const dStr=document.getElementById('fDate').value;
+  const amt=parseFloat(document.getElementById('fAmount').value.replace(/[^\d,-]/g,'').replace(/\./g,'').replace(',','.'))||0;
+  const cat=document.getElementById('fCategory').value;
+  const concept=document.getElementById('fConcept').value||cat;
+  const prov=document.getElementById('fProvider').value||null;
+  const mov={ id:Date.now(), date:new Date(dStr), cat, concept, provider:prov, amount:-Math.abs(amt), type:'out', source:'archivo' };
+  closeModal();
+  const db=window.AgoraDB;
+  if(db){
+    try{ const saved=await db.add(document.getElementById('consorcioSel').value, mov); if(saved&&saved.id) mov.id=saved.id; }
+    catch(err){ console.warn('No se pudo guardar en Firestore:',err); toast('No se pudo guardar en la base · revisá la conexión'); }
+  }
+  DATA.unshift(mov); DATA.sort((a,b)=>b.date-a.date);
+  renderAll();
+  toast('Egreso registrado desde comprobante · '+fmt(-Math.abs(amt)));
+});
+
+/* ---- toast ---- */
+let toastTimer;
+function toast(msg){
+  document.getElementById('toastMsg').textContent=msg;
+  const el=document.getElementById('toast'); el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),3000);
+}
+window.toast=toast;
+
+/* ============================================================
+   Firebase / carga de datos (con fallback a modo local)
+   ============================================================ */
+function setDBStatus(connected){
+  const el=document.getElementById('dbStatus'); if(!el) return;
+  const dot=`<span style="width:7px;height:7px;border-radius:50%;background:${connected?'#3ec98a':'#8a8d95'};display:inline-block;flex:none"></span>`;
+  el.innerHTML = dot + (connected ? 'Conectado a Firebase' : 'Modo local (sin Firebase)');
+}
+async function loadConsorcio(name){
+  const db=window.AgoraDB;
+  if(db){
+    try{
+      let rows=await db.getAll(name);
+      if(rows.length===0){ await db.seed(name, buildData()); rows=await db.getAll(name); }
+      DATA=rows; return;
+    }catch(err){ console.warn('Firestore no disponible, uso datos locales:',err); }
+  }
+  DATA=buildData();
+}
+async function bootstrap(){
+  const db=await (window.__agoraReady || Promise.resolve(null));
+  setDBStatus(!!db);
+  await loadConsorcio(document.getElementById('consorcioSel').value);
+  renderAll();
+}
+bootstrap();
+</script>
+<script type="module" src="firebase-init.js"></script>
+</body>
+</html>

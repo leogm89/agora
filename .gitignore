@@ -1,0 +1,13 @@
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Vercel
+.vercel
+
+# Logs / temporales
+*.log
+node_modules/
+
+# Configuración local de la herramienta de preview
+.claude/

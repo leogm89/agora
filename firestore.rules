@@ -1,0 +1,23 @@
+// ============================================================
+//  Ágora · Reglas de Firestore
+// ============================================================
+//  ⚠ MODO DEMO ABIERTO: cualquiera con el link puede leer y escribir.
+//  Sirve para probar el deploy, NO para datos reales de consorcios.
+//  Cuando agreguemos login (Firebase Auth), reemplazá por las reglas
+//  protegidas comentadas más abajo.
+// ============================================================
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- DEMO ABIERTA (activa) ---
+    match /movimientos/{id} {
+      allow read, write: if true;
+    }
+
+    // --- CON LOGIN (futuro): descomentar y borrar la regla de arriba ---
+    // match /movimientos/{id} {
+    //   allow read, write: if request.auth != null;
+    // }
+  }
+}
