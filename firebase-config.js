@@ -11,12 +11,12 @@
 //  (datos de ejemplo en memoria, sin guardar nada en la nube).
 // ============================================================
 window.AGORA_FIREBASE_CONFIG = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_PROYECTO.firebaseapp.com",
-  projectId: "TU_PROYECTO",
-  storageBucket: "TU_PROYECTO.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "1:000000000000:web:xxxxxxxxxxxxxxxx"
+  apiKey: "AIzaSyAII_NGM44VZP_1_FPrpFh5phQp0BMy2m8",
+  authDomain: "agora-55d20.firebaseapp.com",
+  projectId: "agora-55d20",
+  storageBucket: "agora-55d20.firebasestorage.app",
+  messagingSenderId: "774505776750",
+  appId: "1:774505776750:web:1d4e70ff2a158447f0887f"
 };
 
 // ---- No tocar: coordina la carga asíncrona de Firebase ----
