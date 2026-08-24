@@ -11,3 +11,9 @@ node_modules/
 
 # Configuración local de la herramienta de preview
 .claude/
+
+# Artefactos de desarrollo (no publicar en el sitio)
+shots/
+*.docx
+build_doc.py
+assets/

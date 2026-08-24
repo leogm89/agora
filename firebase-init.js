@@ -8,6 +8,10 @@ import {
   getFirestore, collection, query, where, getDocs,
   addDoc, writeBatch, doc, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {
+  getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+  createUserWithEmailAndPassword, signOut
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const COL = "movimientos";
 const cfg = window.AGORA_FIREBASE_CONFIG || {};
@@ -25,6 +29,16 @@ if (!configured) {
   try {
     const app = initializeApp(cfg);
     const db  = getFirestore(app);
+
+    // --- Autenticación (Firebase Auth: email + contraseña) ---
+    const auth = getAuth(app);
+    window.AgoraAuth = {
+      onChange: (cb) => onAuthStateChanged(auth, cb),
+      login:    (email, pass) => signInWithEmailAndPassword(auth, email, pass),
+      register: (email, pass) => createUserWithEmailAndPassword(auth, email, pass),
+      logout:   () => signOut(auth),
+      current:  () => auth.currentUser
+    };
 
     // Firestore → objeto de movimiento que usa la app
     const toMov = (d) => {
