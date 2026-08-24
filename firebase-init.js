@@ -40,18 +40,20 @@ if (!configured) {
       current:  () => auth.currentUser
     };
 
+    const uid = () => (auth.currentUser ? auth.currentUser.uid : "__anon__");
+
     // Firestore → objeto de movimiento que usa la app
     const toMov = (d) => {
       const x = d.data();
       return {
-        id: d.id,
+        id: d.id, consorcio: x.consorcio,
         date: x.date && x.date.toDate ? x.date.toDate() : new Date(x.date),
         cat: x.cat, concept: x.concept, provider: x.provider || null,
         amount: x.amount, type: x.type, source: x.source || "sistema"
       };
     };
     const docFields = (consorcio, m) => ({
-      consorcio,
+      uid: uid(), consorcio,
       date: Timestamp.fromDate(new Date(m.date)),
       cat: m.cat, concept: m.concept, provider: m.provider || null,
       amount: m.amount, type: m.type, source: m.source || "sistema",
@@ -59,10 +61,11 @@ if (!configured) {
     });
 
     const api = {
-      // Trae todos los movimientos de un consorcio (orden en cliente → sin índice compuesto)
+      // Movimientos del usuario actual para un consorcio.
+      // Se consulta por uid (un solo campo → sin índice compuesto) y se filtra el consorcio en el cliente.
       async getAll(consorcio) {
-        const snap = await getDocs(query(collection(db, COL), where("consorcio", "==", consorcio)));
-        return snap.docs.map(toMov).sort((a, b) => b.date - a.date);
+        const snap = await getDocs(query(collection(db, COL), where("uid", "==", uid())));
+        return snap.docs.map(toMov).filter(m => m.consorcio === consorcio).sort((a, b) => b.date - a.date);
       },
       // Inserta un movimiento nuevo
       async add(consorcio, mov) {

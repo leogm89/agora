@@ -861,16 +861,17 @@ function byMonth(){
 /* ============================================================
    RENDER
    ============================================================ */
+function emptyState(title, sub){
+  return `<div class="empty" style="padding:34px 20px"><div style="font-weight:600;color:var(--ink-2);font-size:14px;margin-bottom:5px">${title}</div><div style="font-size:12.5px;color:var(--slate)">${sub}</div></div>`;
+}
 function renderKPIs(){
   const list = periodTx(); const t = totals(list);
-  // reserva acumulada (todo el histórico de fondo de reserva)
-  const reserva = DATA.filter(x=>x.cat==='Fondo de reserva').reduce((s,x)=>s+Math.abs(x.amount),0) + 4200000;
-  const saldo = totals(DATA.filter(x=>x.date<=TODAY)).neto + 3500000; // saldo inicial
+  const saldo = totals(DATA.filter(x=>x.date<=TODAY)).neto; // saldo = neto acumulado de movimientos
   // delta vs período previo (mismo largo)
   const months = byMonth();
   const lastM = months[months.length-1], prevM = months[months.length-2];
-  const dIn = prevM? (lastM.in-prevM.in)/prevM.in*100 : 0;
-  const dOut = prevM? (lastM.out-prevM.out)/prevM.out*100 : 0;
+  const dIn = (lastM&&prevM&&prevM.in) ? (lastM.in-prevM.in)/prevM.in*100 : 0;
+  const dOut = (lastM&&prevM&&prevM.out) ? (lastM.out-prevM.out)/prevM.out*100 : 0;
 
   const kpis = [
     {label:'Saldo disponible', dot:'var(--ink)', val:fmt(saldo), delta:null, sub:'Caja + bancos del consorcio'},
@@ -898,6 +899,7 @@ function renderKPIs(){
 /* ---- Cash flow chart (SVG) ---- */
 function renderCashChart(){
   const months = byMonth();
+  if(months.length===0){ document.getElementById('cashChart').innerHTML = emptyState('Sin movimientos todavía','Cargá gastos o escaneá un archivo para ver el flujo de caja.'); return; }
   const [f] = rangeBounds();
   let vis = months.filter(m=> m.date >= new Date(f.getFullYear(),f.getMonth(),1));
   if(vis.length<2) vis = months.slice(-3);
@@ -960,6 +962,7 @@ function renderCashChart(){
 
 /* simple linear-trend projection */
 function projectMonths(months, k){
+  if(!months.length) return [];
   const last = months.slice(-4);
   const trend = key => { const a=last[0][key], b=last[last.length-1][key]; return (b-a)/(last.length-1); };
   const tIn=trend('in'), tOut=trend('out');
@@ -975,6 +978,10 @@ function projectMonths(months, k){
 /* ---- Insights engine ---- */
 function computeInsights(){
   const months = byMonth();
+  if(months.length===0){
+    return { list:[{type:'tip',icon:'tip',t:'Empezá a cargar datos',d:'Cargá gastos, escaneá un archivo o conectá la plataforma del consorcio. Con esos datos, la IA generará recomendaciones y la expensa sugerida.',tag:'Primeros pasos'}],
+             reco:{target:0,deltaPct:0}, mor:0, proj:[] };
+  }
   const last = months[months.length-1];
   const proj = projectMonths(months,3);
   const list=[];
@@ -1039,8 +1046,8 @@ function reasonRow(label, value, total){
 }
 /* recomendaciones adicionales (se revelan bajo demanda) */
 function extraRecos(){
-  const months=byMonth(), last=months[months.length-1];
-  const reserva=DATA.filter(x=>x.cat==='Fondo de reserva').reduce((s,x)=>s+Math.abs(x.amount),0)+4200000;
+  const months=byMonth(), last=months[months.length-1]||{in:0,out:0};
+  const reserva=DATA.filter(x=>x.cat==='Fondo de reserva').reduce((s,x)=>s+Math.abs(x.amount),0);
   return [
     {type:'tip',icon:'tip',t:'Renegociar contratos con proveedores',d:`Los mayores egresos concentran buena parte del gasto. Renegociar limpieza y seguros podría liberar ~<b>${fmt(last.out*0.04)}</b>/mes de caja recurrente.`,tag:'Optimización'},
     {type:'warn',icon:'warn',t:'Plan de pago para morosos crónicos',d:`Ofrecer un plan a las unidades con mayor atraso ayudaría a recuperar parte de la caja inmovilizada y a estabilizar la cobranza del trimestre.`,tag:'Cobranza'},
@@ -1069,15 +1076,15 @@ function renderInsights(){
   const list = aiRecos ? aiRecos.list : local.list;
   EXTRA_LIST=extraRecos(); extraShown=0;
 
-  document.getElementById('insightList').innerHTML = list.slice(0,3).map(insightCard).join('') + moreRecosBtn();
+  document.getElementById('insightList').innerHTML = list.slice(0,3).map(insightCard).join('') + (DATA.length ? moreRecosBtn() : '');
   const mb=document.getElementById('moreRecos'); if(mb) mb.addEventListener('click', moreRecos);
   document.getElementById('allInsights').innerHTML = list.map(insightCard).join('');
   const hn=document.getElementById('insightHint'); if(hn) hn.textContent = aiRecos ? 'Generado por IA' : 'IA financiera';
 
   // razonamiento del cálculo de expensa
-  const rec3=byMonth().slice(-3);
-  const avgOut=rec3.reduce((s,m)=>s+m.out,0)/rec3.length;
-  const avgIn=rec3.reduce((s,m)=>s+m.in,0)/rec3.length;
+  const rec3=byMonth().slice(-3); const n3=rec3.length||1;
+  const avgOut=rec3.reduce((s,m)=>s+m.out,0)/n3;
+  const avgIn=rec3.reduce((s,m)=>s+m.in,0)/n3;
   const colchon=avgOut*0.08;
   const dp=(Number(reco.deltaPct)||0);
   const reasoning = (aiRecos && reco.razonamiento)
@@ -1128,7 +1135,7 @@ function gatherConsorcioData(){
   const meses=byMonth().slice(-6).map(m=>({mes:MES[m.date.getMonth()]+' '+m.date.getFullYear(), ingresos:Math.round(m.in), egresos:Math.round(m.out)}));
   const outByCat={}; DATA.filter(t=>t.type==='out').forEach(t=>{ outByCat[t.cat]=(outByCat[t.cat]||0)+Math.abs(t.amount); });
   const egresosPorCategoria=Object.entries(outByCat).sort((a,b)=>b[1]-a[1]).map(([categoria,total])=>({categoria,total:Math.round(total)}));
-  const saldo=totals(DATA.filter(x=>x.date<=TODAY)).neto+3500000;
+  const saldo=totals(DATA.filter(x=>x.date<=TODAY)).neto;
   const mor=computeInsights().mor||0;
   const last=byMonth().slice(-1)[0]||{in:0,out:0};
   return {
@@ -1214,8 +1221,13 @@ function renderMovTable(){
 /* ---- proyeccion view ---- */
 function renderProyeccion(){
   const months=byMonth();
+  if(months.length===0){
+    document.getElementById('projChart').innerHTML = emptyState('Sin datos para proyectar','Cargá movimientos del consorcio y la proyección de caja aparecerá acá.');
+    document.getElementById('projReco').innerHTML=''; document.getElementById('assumptions').innerHTML='';
+    document.getElementById('scenarios').innerHTML=''; return;
+  }
   const proj=projectMonths(months,6);
-  let saldo = totals(DATA.filter(x=>x.date<=TODAY)).neto + 3500000;
+  let saldo = totals(DATA.filter(x=>x.date<=TODAY)).neto;
   const pts=[{date:months[months.length-1].date,saldo}];
   proj.forEach(m=>{ saldo+= (m.in-m.out); pts.push({date:m.date,saldo,proj:true}); });
 
@@ -1713,13 +1725,10 @@ function setDBStatus(connected){
 }
 async function loadConsorcio(name, db=window.AgoraDB){
   if(db){
-    try{
-      let rows=await db.getAll(name);
-      if(rows.length===0){ await db.seed(name, buildData()); rows=await db.getAll(name); }
-      DATA=rows; return;
-    }catch(err){ console.warn('Firestore no disponible, uso datos locales:',err); }
+    try{ DATA=await db.getAll(name); return; }   // usuario real: arranca con lo que tenga cargado (vacío si es nuevo)
+    catch(err){ console.warn('Firestore no disponible, uso datos locales:',err); }
   }
-  DATA=buildData();
+  DATA=buildData();   // solo modo local/demo (?local=1) usa datos de ejemplo
 }
 async function bootstrap(){
   const forceLocal=new URLSearchParams(location.search).get('local')==='1';
@@ -1727,6 +1736,7 @@ async function bootstrap(){
   if(forceLocal){ const s=document.getElementById('dbStatus'); if(s) s.style.display='none'; }
   else setDBStatus(!!db);
   await loadConsorcio(document.getElementById('consorcioSel').value, db);
+  if(new URLSearchParams(location.search).get('empty')==='1') DATA=[];   // previsualizar estado vacío
   renderAll();
   const h=location.hash.replace('#',''); if(typeof VIEWS!=='undefined' && VIEWS.includes(h)) setView(h);
   // estados para capturas de pantalla / documentación
