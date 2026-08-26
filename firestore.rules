@@ -1,23 +1,25 @@
 // ============================================================
 //  Ágora · Reglas de Firestore
 // ============================================================
-//  ⚠ MODO DEMO ABIERTO: cualquiera con el link puede leer y escribir.
-//  Sirve para probar el deploy, NO para datos reales de consorcios.
-//  Cuando agreguemos login (Firebase Auth), reemplazá por las reglas
-//  protegidas comentadas más abajo.
+//  Acceso protegido: solo usuarios autenticados, y cada uno
+//  únicamente sobre SUS propios movimientos (campo uid).
+//
+//  ▶ Para aplicarlas: Firebase Console → Firestore Database →
+//    pestaña "Reglas" → pegar esto → Publicar.
 // ============================================================
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- DEMO ABIERTA (activa) ---
     match /movimientos/{id} {
-      allow read, write: if true;
+      // Leer: logueado y dueño del documento
+      allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+      // Crear: logueado y el documento se guarda con SU uid
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      // Modificar/borrar: logueado y dueño del documento
+      allow update, delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
 
-    // --- CON LOGIN (futuro): descomentar y borrar la regla de arriba ---
-    // match /movimientos/{id} {
-    //   allow read, write: if request.auth != null;
-    // }
+    // Todo lo demás, denegado por defecto.
   }
 }
