@@ -72,12 +72,17 @@ if (!configured) {
         const ref = await addDoc(collection(db, COL), docFields(consorcio, { ...mov, source: mov.source || "archivo" }));
         return { id: ref.id };
       },
-      // Carga inicial de datos de ejemplo cuando el consorcio no tiene movimientos
-      async seed(consorcio, list) {
-        const batch = writeBatch(db);
-        list.forEach((m) => batch.set(doc(collection(db, COL)), docFields(consorcio, m)));
-        await batch.commit();
-      }
+      // Inserta muchos movimientos de una (escritura por lote, hasta 450 por batch)
+      async addMany(consorcio, list) {
+        const CH = 450;
+        for (let i = 0; i < list.length; i += CH) {
+          const batch = writeBatch(db);
+          list.slice(i, i + CH).forEach((m) => batch.set(doc(collection(db, COL)), docFields(consorcio, m)));
+          await batch.commit();
+        }
+      },
+      // Alias usado en modo demo/carga inicial
+      async seed(consorcio, list) { return this.addMany(consorcio, list); }
     };
 
     finish(api);

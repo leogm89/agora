@@ -72,7 +72,7 @@ async function interpretarLote(key, filename, header, batch) {
     const e = new Error(msg); e.status = apiRes.status; e.detail = data; throw e;
   }
   const toolUse = (data.content || []).find(b => b.type === 'tool_use');
-  const movimientos = toolUse && Array.isArray(toolUse.input.movimientos) ? toolUse.input.movimientos : [];
+  const movimientos = toolUse && toolUse.input && Array.isArray(toolUse.input.movimientos) ? toolUse.input.movimientos : [];
   return { movimientos, cut: data.stop_reason === 'max_tokens' };
 }
 
@@ -104,22 +104,29 @@ module.exports = async (req, res) => {
       return res.status(422).json({ error: 'No encontré filas de gastos en la planilla.' });
     }
 
-    // Procesar por lotes (para reportes grandes)
+    // Procesar por lotes EN PARALELO (tiempo total ≈ una sola llamada)
     const CHUNK = 120;
+    const batches = [];
+    for (let i = 0; i < dataRows.length; i += CHUNK) batches.push(dataRows.slice(i, i + CHUNK));
+
+    const results = await Promise.allSettled(batches.map(b => interpretarLote(key, filename, header, b)));
     const movimientos = [];
     const notas = [];
-    let cortado = false;
-    for (let i = 0; i < dataRows.length; i += CHUNK) {
-      const r = await interpretarLote(key, filename, header, dataRows.slice(i, i + CHUNK));
-      movimientos.push(...r.movimientos);
-      if (r.cut) cortado = true;
+    let cortado = false, fallos = 0, lastErr = null;
+    for (const r of results) {
+      if (r.status === 'fulfilled') { movimientos.push(...r.value.movimientos); if (r.value.cut) cortado = true; }
+      else { fallos++; lastErr = r.reason; }
     }
 
     if (movimientos.length === 0) {
-      return res.status(502).json({ error: 'El modelo no devolvió movimientos.', hint: 'Revisá que la planilla tenga los gastos en filas (proveedor, importe, fecha).' });
+      return res.status((lastErr && lastErr.status) || 502).json({
+        error: (lastErr && lastErr.message) || 'El modelo no devolvió movimientos.',
+        hint: 'Revisá que la planilla tenga los gastos en filas (proveedor, importe, fecha).'
+      });
     }
 
     if (truncated) notas.push(`Se procesaron las primeras ${MAX_ROWS} de ${rows.length} filas.`);
+    if (fallos) notas.push(`${fallos} lote(s) no se pudieron procesar; el resto se importó.`);
     if (cortado) notas.push('Algún lote se cortó por longitud; puede faltar algún movimiento.');
     return res.status(200).json({ movimientos, notas });
   } catch (err) {

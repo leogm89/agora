@@ -1628,17 +1628,16 @@ function resArchivosReal(data){
 }
 async function importMovimientos(movs, btn){
   if(btn){ btn.disabled=true; btn.textContent='Importando…'; }
-  const db=window.AgoraDB, c=consorcioName(), added=[];
-  for(const m of movs){
+  const db=window.AgoraDB, c=consorcioName();
+  const added=movs.map((m,i)=>{
     const cat = CATS[m.categoria] ? m.categoria : (m.tipo==='in'?'Expensas ordinarias':'Reparaciones');
     const amt = Math.abs(Number(m.monto)||0);
     const d = (m.fecha && !isNaN(new Date(m.fecha).getTime())) ? new Date(m.fecha) : new Date(TODAY);
-    const mov={ id:'imp'+Date.now()+Math.round(Math.random()*1e6), date:d, cat,
+    return { id:'imp'+Date.now()+'-'+i, date:d, cat,
       concept:m.concepto||cat, provider:m.proveedor||null,
       amount:(m.tipo==='in'?amt:-amt), type:(m.tipo==='in'?'in':'out'), source:'archivo' };
-    if(db){ try{ const s=await db.add(c,mov); if(s&&s.id) mov.id=s.id; }catch(e){ console.warn('No se pudo guardar en Firestore:',e); } }
-    added.push(mov);
-  }
+  });
+  if(db){ try{ await db.addMany(c, added); }catch(e){ console.warn('No se pudo guardar en Firestore:',e); toast('Error al guardar en la base'); } }
   DATA.unshift(...added); DATA.sort((a,b)=>b.date-a.date); renderAll();
   if(btn){ btn.textContent='Importados ✓'; }
   toast(added.length+' movimientos importados desde el Excel');
