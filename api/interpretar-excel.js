@@ -17,11 +17,12 @@ const SYSTEM = `Sos un asistente que interpreta planillas de administración de 
 Recibís las filas de una planilla (array de arrays; las primeras filas pueden ser encabezados o títulos). Identificá los movimientos reales (una fila = un movimiento) e ignorá encabezados, subtotales, totales y filas vacías.
 
 Reglas:
+- Extraé UN movimiento por línea de gasto o ingreso (un concepto con su importe total). NO generes un movimiento por unidad funcional, NI desgloses la distribución por coeficiente o porcentaje: ignorá las columnas de prorrateo/distribución por unidad. Enfocate en la lista de conceptos del período y sus importes totales.
 - "monto" siempre POSITIVO (sin signo ni símbolos). Interpretá el formato argentino: "$", miles con "." y decimales con "," (ej. "1.234.567,89" = 1234567.89).
 - "tipo": "in" para ingresos (cobranzas, expensas, intereses) u "out" para egresos (pagos, gastos).
 - "fecha" en formato "YYYY-MM-DD"; si no hay fecha clara, usá null.
 - "categoria": elegí la más adecuada. Ingresos: ${CATS_IN.join(', ')}. Egresos: ${CATS_OUT.join(', ')}. Si ninguna encaja, usá "Reparaciones" (out) o "Expensas ordinarias" (in).
-Registrá TODOS los movimientos usando la herramienta provista.`;
+Registrá los movimientos usando la herramienta provista.`;
 
 const TOOL = {
   name: 'registrar_movimientos',
@@ -75,7 +76,7 @@ module.exports = async (req, res) => {
       headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 16000,
+        max_tokens: 24000,
         system: SYSTEM,
         tools: [TOOL],
         tool_choice: { type: 'tool', name: 'registrar_movimientos' },
@@ -91,8 +92,12 @@ module.exports = async (req, res) => {
 
     const toolUse = (data.content || []).find(b => b.type === 'tool_use');
     const parsed = toolUse ? toolUse.input : null;
-    if (!parsed || !Array.isArray(parsed.movimientos)) {
-      return res.status(502).json({ error: 'El modelo no devolvió movimientos.', stop_reason: data.stop_reason, detail: data.content });
+    // Rescatamos resultados aunque la respuesta se haya cortado, si hay al menos un movimiento.
+    if (!parsed || !Array.isArray(parsed.movimientos) || parsed.movimientos.length === 0) {
+      const hint = data.stop_reason === 'max_tokens'
+        ? 'El reporte es muy grande o tiene una columna por unidad funcional. Probá con la hoja de gastos (conceptos) o un archivo más chico.'
+        : 'Revisá que la planilla tenga los gastos en filas (fecha, concepto, importe).';
+      return res.status(502).json({ error: 'El modelo no devolvió movimientos.', stop_reason: data.stop_reason, hint });
     }
 
     const notas = Array.isArray(parsed.notas) ? parsed.notas : [];
