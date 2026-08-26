@@ -1,9 +1,11 @@
 // ============================================================
 //  Ágora · Función serverless (Vercel) — Interpretar Excel con IA
 // ============================================================
-//  Recibe las filas de una planilla del consorcio y usa la API de
-//  Claude (con salida estructurada / tool use) para devolver los
-//  movimientos ya parseados. La API key vive solo acá.
+//  Lee las filas de una planilla del consorcio y usa la API de
+//  Claude (salida estructurada / tool use) para devolver los
+//  movimientos parseados. Procesa por lotes para soportar
+//  reportes grandes (cientos de gastos) sin cortes por longitud.
+//  La API key vive solo acá.
 // ============================================================
 
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
@@ -14,19 +16,19 @@ const CATS_OUT = ['Sueldo encargado', 'Mantenimiento ascensores', 'Limpieza', 'E
 
 const SYSTEM = `Sos un asistente que interpreta planillas de administración de consorcios en Argentina y las convierte en movimientos financieros estructurados.
 
-Recibís las filas de una planilla (array de arrays; las primeras filas pueden ser encabezados o títulos). Identificá los movimientos reales (una fila = un movimiento) e ignorá encabezados, subtotales, totales y filas vacías.
+Recibís los encabezados de la planilla y un lote de filas de datos (array de arrays). Cada fila de datos es UN movimiento. Ignorá filas de título, subtotales, totales o vacías.
 
 Reglas:
-- Extraé UN movimiento por línea de gasto o ingreso (un concepto con su importe total). NO generes un movimiento por unidad funcional, NI desgloses la distribución por coeficiente o porcentaje: ignorá las columnas de prorrateo/distribución por unidad. Enfocate en la lista de conceptos del período y sus importes totales.
-- "monto" siempre POSITIVO (sin signo ni símbolos). Interpretá el formato argentino: "$", miles con "." y decimales con "," (ej. "1.234.567,89" = 1234567.89).
-- "tipo": "in" para ingresos (cobranzas, expensas, intereses) u "out" para egresos (pagos, gastos).
-- "fecha" en formato "YYYY-MM-DD"; si no hay fecha clara, usá null.
-- "categoria": elegí la más adecuada. Ingresos: ${CATS_IN.join(', ')}. Egresos: ${CATS_OUT.join(', ')}. Si ninguna encaja, usá "Reparaciones" (out) o "Expensas ordinarias" (in).
-Registrá los movimientos usando la herramienta provista.`;
+- "monto" siempre POSITIVO (sin signo ni símbolos). Formato argentino: miles con "." y decimales con "," (ej. "1.234.567,89" = 1234567.89). Si viene como número plano (ej. 942536.0), usalo tal cual.
+- "tipo": "in" para ingresos (cobranzas, expensas, intereses) u "out" para egresos/pagos (la mayoría de los gastos son "out").
+- "concepto": usá el rubro/cuenta o el detalle de la fila. "proveedor": el proveedor o empleado si aparece.
+- "fecha" en formato "YYYY-MM-DD"; si solo hay un período (ej. "Ago.26") o no hay fecha clara, usá null.
+- "categoria": la más cercana. Ingresos: ${CATS_IN.join(', ')}. Egresos: ${CATS_OUT.join(', ')}. Si ninguna encaja, usá "Reparaciones" (out) o "Expensas ordinarias" (in).
+Registrá TODAS las filas del lote con la herramienta provista.`;
 
 const TOOL = {
   name: 'registrar_movimientos',
-  description: 'Registra los movimientos financieros interpretados de la planilla del consorcio.',
+  description: 'Registra los movimientos financieros interpretados del lote de filas.',
   input_schema: {
     type: 'object',
     properties: {
@@ -44,12 +46,35 @@ const TOOL = {
           },
           required: ['concepto', 'tipo', 'monto', 'categoria']
         }
-      },
-      notas: { type: 'array', items: { type: 'string' } }
+      }
     },
     required: ['movimientos']
   }
 };
+
+async function interpretarLote(key, filename, header, batch) {
+  const content = `Archivo: ${filename}\nEncabezados de la planilla:\n${JSON.stringify(header)}\n\nFilas de datos a interpretar (cada una es un movimiento):\n${JSON.stringify(batch)}`;
+  const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 16000,
+      system: SYSTEM,
+      tools: [TOOL],
+      tool_choice: { type: 'tool', name: 'registrar_movimientos' },
+      messages: [{ role: 'user', content }]
+    })
+  });
+  const data = await apiRes.json();
+  if (!apiRes.ok) {
+    const msg = data && data.error && data.error.message ? data.error.message : 'Error de la API de Claude';
+    const e = new Error(msg); e.status = apiRes.status; e.detail = data; throw e;
+  }
+  const toolUse = (data.content || []).find(b => b.type === 'tool_use');
+  const movimientos = toolUse && Array.isArray(toolUse.input.movimientos) ? toolUse.input.movimientos : [];
+  return { movimientos, cut: data.stop_reason === 'max_tokens' };
+}
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido. Usá POST.' });
@@ -63,49 +88,41 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'No se recibieron filas para interpretar.' });
     }
 
-    const MAX_ROWS = 400;
+    const MAX_ROWS = 800;
     const trimmed = rows.slice(0, MAX_ROWS);
     const truncated = rows.length > MAX_ROWS;
 
-    const userContent = `Archivo: ${filename}\nFilas de la planilla (array de arrays):\n` +
-      JSON.stringify(trimmed) +
-      (truncated ? `\n\n(La planilla tenía ${rows.length} filas; se enviaron las primeras ${MAX_ROWS}.)` : '');
-
-    const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 24000,
-        system: SYSTEM,
-        tools: [TOOL],
-        tool_choice: { type: 'tool', name: 'registrar_movimientos' },
-        messages: [{ role: 'user', content: userContent }]
-      })
-    });
-
-    const data = await apiRes.json();
-    if (!apiRes.ok) {
-      const msg = data && data.error && data.error.message ? data.error.message : 'Error de la API de Claude';
-      return res.status(apiRes.status).json({ error: msg, detail: data });
+    // Detectar la fila de encabezados de columnas (contiene "monto"/"proveedor"/"rubro")
+    let headerIdx = 0;
+    for (let i = 0; i < Math.min(trimmed.length, 15); i++) {
+      const joined = (trimmed[i] || []).map(c => String(c).toLowerCase()).join(' ');
+      if (/monto|proveedor|rubro|concepto|importe/.test(joined)) { headerIdx = i; break; }
+    }
+    const header = trimmed.slice(0, headerIdx + 1);
+    const dataRows = trimmed.slice(headerIdx + 1);
+    if (dataRows.length === 0) {
+      return res.status(422).json({ error: 'No encontré filas de gastos en la planilla.' });
     }
 
-    const toolUse = (data.content || []).find(b => b.type === 'tool_use');
-    const parsed = toolUse ? toolUse.input : null;
-    // Rescatamos resultados aunque la respuesta se haya cortado, si hay al menos un movimiento.
-    if (!parsed || !Array.isArray(parsed.movimientos) || parsed.movimientos.length === 0) {
-      const hint = data.stop_reason === 'max_tokens'
-        ? 'El reporte es muy grande o tiene una columna por unidad funcional. Probá con la hoja de gastos (conceptos) o un archivo más chico.'
-        : 'Revisá que la planilla tenga los gastos en filas (fecha, concepto, importe).';
-      return res.status(502).json({ error: 'El modelo no devolvió movimientos.', stop_reason: data.stop_reason, hint });
+    // Procesar por lotes (para reportes grandes)
+    const CHUNK = 120;
+    const movimientos = [];
+    const notas = [];
+    let cortado = false;
+    for (let i = 0; i < dataRows.length; i += CHUNK) {
+      const r = await interpretarLote(key, filename, header, dataRows.slice(i, i + CHUNK));
+      movimientos.push(...r.movimientos);
+      if (r.cut) cortado = true;
     }
 
-    const notas = Array.isArray(parsed.notas) ? parsed.notas : [];
-    if (truncated) notas.push(`Se interpretaron las primeras ${MAX_ROWS} de ${rows.length} filas.`);
-    if (data.stop_reason === 'max_tokens') notas.push('La respuesta se cortó por longitud; puede faltar algún movimiento.');
+    if (movimientos.length === 0) {
+      return res.status(502).json({ error: 'El modelo no devolvió movimientos.', hint: 'Revisá que la planilla tenga los gastos en filas (proveedor, importe, fecha).' });
+    }
 
-    return res.status(200).json({ movimientos: parsed.movimientos, notas });
+    if (truncated) notas.push(`Se procesaron las primeras ${MAX_ROWS} de ${rows.length} filas.`);
+    if (cortado) notas.push('Algún lote se cortó por longitud; puede faltar algún movimiento.');
+    return res.status(200).json({ movimientos, notas });
   } catch (err) {
-    return res.status(500).json({ error: 'Fallo al procesar el archivo', detail: String(err && err.message || err) });
+    return res.status(err.status || 500).json({ error: err.message || 'Fallo al procesar el archivo', detail: String(err && err.message || err) });
   }
 };
